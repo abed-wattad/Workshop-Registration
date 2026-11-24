@@ -1,4 +1,4 @@
-package patmal.workshops.impl;
+package patmal.workshops.student.impl.model;
 
 import patmal.workshops.api.model.Instructor;
 import patmal.workshops.api.model.Workshop;
@@ -16,9 +16,9 @@ public final class InstructorImpl extends PersonImpl implements Instructor {
         return new ArrayList<>(workshops);
     }
 
-    void addWorkshop(Workshop workshop) {
+    public void addWorkshop(Workshop workshop) {
         if (!workshops.contains(workshop)) workshops.add(workshop);
     }
 
-    void removeWorkshop(Workshop workshop) { workshops.remove(workshop); }
+    public void removeWorkshop(Workshop workshop) { workshops.remove(workshop); }
 }

@@ -1,50 +1,132 @@
-# Workshop Registration System — EX1 Vanilla
-
-Plain Java implementation of the instructor, student, workshop and team APIs supplied in the course's `model-1.0.jar` and `logic-1.0.jar`. No Maven, Gradle, or frameworks.
+# Workshop Registration System — EX2 Maven Evolution
 
 ## Requirements
 
-**Java JDK 25 is required to run the original supplied API and tester JARs.** The implementation source and packaged implementation JAR also compile under Java 21, but the supplied JARs have Java 25 bytecode and will not run unchanged on Java 21. Use JDK 25 in IntelliJ and for final verification.
+- JDK 25
+- Apache Maven 3.9+
+- Internet access for Maven Central dependencies
 
-## Build (Windows PowerShell)
+Run all commands from the repository root.
 
-From this project's root folder:
+IntelliJ IDEA users can execute Maven commands using
+Run Anything (press Ctrl twice).
 
-```powershell
-New-Item -ItemType Directory -Force out, artifacts | Out-Null
-javac -cp 'lib/model-1.0.jar;lib/logic-1.0.jar' -d out (Get-ChildItem src -Recurse -Filter *.java | ForEach-Object FullName)
-jar cf artifacts/workshop-implementation.jar -C out .
-java -cp 'lib/workshop-tester.jar;lib/logic-1.0.jar;lib/model-1.0.jar;artifacts/workshop-implementation.jar' patmal.workshops.main.Main
+## One-time local API installation
+
+The supplied JAR files are stored in `lib/`.
+
+Execute these commands once per computer:
+
+```sh
+mvn install:install-file -Dfile=lib/model-2.0.jar -DgroupId=patmal.workshops -DartifactId=model -Dversion=2.0 -Dpackaging=jar -DgeneratePom=true
+
+mvn install:install-file -Dfile=lib/logic-2.0.jar -DgroupId=patmal.workshops -DartifactId=logic -Dversion=2.0 -Dpackaging=jar -DgeneratePom=true
+
+mvn install:install-file -Dfile=lib/workshop-tester-2.0.jar -DgroupId=patmal.workshops -DartifactId=workshop-tester -Dversion=2.0 -Dpackaging=jar -DgeneratePom=true
 ```
 
-On Linux/macOS, substitute `:` for `;` in the classpath and compile using:
+## Build and verify
 
-```bash
-mkdir -p out artifacts
-javac -cp 'lib/model-1.0.jar:lib/logic-1.0.jar' -d out $(find src -name '*.java')
-jar cf artifacts/workshop-implementation.jar -C out .
-java -cp 'lib/workshop-tester.jar:lib/logic-1.0.jar:lib/model-1.0.jar:artifacts/workshop-implementation.jar' patmal.workshops.main.Main
+```sh
+mvn clean install
 ```
 
-## IntelliJ
+To inspect dependencies:
 
-1. Open this directory as a Java project with **JDK 25**.
-2. Mark `src` as Sources Root and add the two API jars in `lib` as dependencies.
-3. Use `patmal.workshops.main.Main` from `workshop-tester.jar` as the test main class, with the tester and your compiled classes on the classpath.
+```sh
+mvn dependency:tree
+```
 
-## Design
+The verify phase automatically runs the supplied tester
+in a separate Java process. A nonzero exit code fails
+the build.
 
-- `WorkshopSystemImpl` is the single public, no-argument system implementation.
-- `InstructorImpl`, `StudentImpl`, `WorkshopImpl`, `TeamImpl`, and `PersonImpl` implement the data model.
-- Maps preserve creation order, and workshop/team IDs begin at 1.
-- `createTeam` validates every member before changing any state or consuming an ID.
-- Unknown object IDs return `null`; unknown aggregate query IDs return empty lists.
-- All returned lists are defensive copies.
+The final executable JAR is:
 
-**Verification:** All 105 checks across 9 scenarios passed using a local Java 21 compatibility test in which ONLY the major class-file version of temporary copies of the provided JARs was adjusted to 21. The test copies are not included in this deliverable; the original supplied JARs remain untouched. Since Java 25 is not installed here, the original Java 25 tester run could not be performed. See `tester-output.txt` for the local test report.
+`app/target/workshop-cli.jar`
 
-**Note:** The compiled API jars use packages `patmal.workshops.api.model` and `patmal.workshops.api.logic`. These differ from the package names printed in part of the assignment document; the code uses the real jar package names.
+## Run the application
 
-## Submission
+```sh
+java -jar app/target/workshop-cli.jar app/src/main/resources/students.csv
+```
 
-Push this project's source and root-level `artifacts/` directory to a **public** GitHub repository. Tag the final commit exactly `EX1-Vanilla` and push that tag. Submit a plain text file containing only your full repository URL. Submit a `.txt` file containing only the real URL of your repository.
+The application also supports running without arguments:
+
+```sh
+java -jar app/target/workshop-cli.jar
+```
+
+Without an argument, the application uses the bundled
+demo CSV file.
+
+The following files are generated in the working directory:
+
+- instructors.json
+- students.json
+- teams.json
+
+## Run the official tester manually
+
+Windows:
+
+```sh
+java -cp "lib/workshop-tester-2.0.jar;app/target/workshop-cli.jar" patmal.workshops.main.Main
+```
+
+Linux/macOS: replace the semicolon with a colon.
+
+## Project architecture
+
+```text
+root
+|-- core
+|   |-- model-impl
+|   `-- logic-impl
+`-- app
+```
+
+Root and core are both aggregators and parent POMs.
+Dependency and plugin versions are managed centrally.
+
+All implementation packages start with:
+
+`patmal.workshops.student.impl`
+
+## External libraries
+
+- Log4j 2: application logging.
+- Commons Validator: email validation.
+- Gson: JSON serialization without circular references.
+- Commons CSV: student CSV import.
+- Maven Assembly Plugin: executable uber JAR.
+- Exec Maven Plugin: automatic tester execution.
+
+The tester has test scope and is excluded from the
+executable uber JAR.
+
+## Bonus tasks
+
+1. Student CSV import.
+2. Automatic tester execution during the Maven verify phase.
+
+## Verification results
+
+Verified using Java 25.0.4 and Maven 3.9.16.
+
+- Maven modules: 5/5 successful.
+- Official tester scenarios: 15/15 passed.
+- Official tester checks: 201/201 passed.
+- Failed checks: 0.
+- Skipped scenarios: 0.
+- Executable JAR: successfully executed.
+- JSON exports: successfully generated.
+- Automatic tester execution: verified.
+
+RESULT: ALL OK
+
+BUILD SUCCESS
+
+## Submission tag
+
+`EX2-Maven-Evolution`

@@ -1,4 +1,4 @@
-package patmal.workshops.impl;
+package patmal.workshops.student.impl.model;
 
 import patmal.workshops.api.model.Person;
 

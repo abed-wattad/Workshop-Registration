@@ -1,4 +1,4 @@
-package patmal.workshops.impl;
+package patmal.workshops.student.impl.model;
 
 import patmal.workshops.api.model.Instructor;
 import patmal.workshops.api.model.Workshop;
@@ -19,5 +19,5 @@ public final class WorkshopImpl implements Workshop {
     @Override public String getName() { return name; }
     @Override public String getDescription() { return description; }
     @Override public Instructor getInstructor() { return instructor; }
-    void setInstructor(InstructorImpl instructor) { this.instructor = instructor; }
+    public void setInstructor(InstructorImpl instructor) { this.instructor = instructor; }
 }

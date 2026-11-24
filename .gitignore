@@ -1,0 +1,8 @@
+target/
+.idea/
+*.iml
+out/
+artifacts/
+instructors.json
+students.json
+teams.json

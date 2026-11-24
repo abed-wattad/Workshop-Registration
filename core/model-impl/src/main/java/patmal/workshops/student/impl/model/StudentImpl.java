@@ -1,4 +1,4 @@
-package patmal.workshops.impl;
+package patmal.workshops.student.impl.model;
 
 import patmal.workshops.api.model.Instructor;
 import patmal.workshops.api.model.Student;
@@ -12,8 +12,9 @@ public final class StudentImpl extends PersonImpl implements Student {
         super(id, name, email);
     }
 
-    boolean isFree() { return team == null; }
-    void setTeam(TeamImpl team) { this.team = team; }
+    public TeamImpl getTeam() { return team; }
+    public boolean isFree() { return team == null; }
+    public void setTeam(TeamImpl team) { this.team = team; }
 
     @Override public String getTeamName() {
         return team == null ? null : team.getName();

@@ -1,4 +1,4 @@
-package patmal.workshops.impl;
+package patmal.workshops.student.impl.logic;
 
 import patmal.workshops.api.logic.WorkshopSystem;
 import patmal.workshops.api.model.Instructor;
@@ -6,6 +6,11 @@ import patmal.workshops.api.model.Student;
 import patmal.workshops.api.model.Team;
 import patmal.workshops.api.model.Workshop;
 
+import patmal.workshops.student.impl.model.*;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.commons.validator.routines.EmailValidator;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -19,6 +24,7 @@ import java.util.Set;
  * Rejected mutations throw IllegalArgumentException without changing the registry.
  */
 public final class WorkshopSystemImpl implements WorkshopSystem {
+    private static final Logger LOG = LogManager.getLogger(WorkshopSystemImpl.class);
     private final Map<String, InstructorImpl> instructors = new LinkedHashMap<>();
     private final Map<String, StudentImpl> students = new LinkedHashMap<>();
     private final Map<Integer, WorkshopImpl> workshops = new LinkedHashMap<>();
@@ -29,16 +35,20 @@ public final class WorkshopSystemImpl implements WorkshopSystem {
     public WorkshopSystemImpl() { }
 
     @Override public Instructor createInstructor(String id, String name, String email) {
-        if (instructors.containsKey(id)) throw new IllegalArgumentException("Duplicate instructor id: " + id);
+        if (!EmailValidator.getInstance().isValid(email)) throw rejected("Invalid email address");
+        if (instructors.containsKey(id)) throw rejected("Duplicate instructor id: " + id);
         InstructorImpl instructor = new InstructorImpl(id, name, email);
         instructors.put(id, instructor);
+        LOG.info("Created instructor: {}", instructor.getId());
         return instructor;
     }
 
     @Override public Student createStudent(String id, String name, String email) {
-        if (students.containsKey(id)) throw new IllegalArgumentException("Duplicate student id: " + id);
+        if (!EmailValidator.getInstance().isValid(email)) throw rejected("Invalid email address");
+        if (students.containsKey(id)) throw rejected("Duplicate student id: " + id);
         StudentImpl student = new StudentImpl(id, name, email);
         students.put(id, student);
+        LOG.info("Created student: {}", student.getId());
         return student;
     }
 
@@ -46,6 +56,7 @@ public final class WorkshopSystemImpl implements WorkshopSystem {
         WorkshopImpl workshop = new WorkshopImpl(nextWorkshopId, name, description);
         workshops.put(nextWorkshopId, workshop);
         nextWorkshopId++;
+        LOG.info("Created workshop: {}", workshop.getId());
         return workshop;
     }
 
@@ -55,7 +66,7 @@ public final class WorkshopSystemImpl implements WorkshopSystem {
             instructors.get(instructor.getId()) != instructor ||
             !(workshop instanceof WorkshopImpl) ||
             workshops.get(workshop.getId()) != workshop) {
-            throw new IllegalArgumentException("Unknown instructor or workshop");
+            throw rejected("Unknown instructor or workshop");
         }
         InstructorImpl newInstructor = (InstructorImpl) instructor;
         WorkshopImpl target = (WorkshopImpl) workshop;
@@ -68,18 +79,18 @@ public final class WorkshopSystemImpl implements WorkshopSystem {
 
     @Override public Team createTeam(String name, Workshop workshop, List<String> members) {
         if (!(workshop instanceof WorkshopImpl) || workshops.get(workshop.getId()) != workshop) {
-            throw new IllegalArgumentException("Unknown workshop");
+            throw rejected("Unknown workshop");
         }
-        if (members == null) throw new IllegalArgumentException("Null member list");
+        if (members == null) throw rejected("Null member list");
 
         // Validate the entire team before changing students, teams, or the id counter.
         List<Student> chosen = new ArrayList<>();
         Set<String> seen = new HashSet<>();
         for (String memberId : members) {
-            if (!seen.add(memberId)) throw new IllegalArgumentException("Duplicate team member: " + memberId);
+            if (!seen.add(memberId)) throw rejected("Duplicate team member: " + memberId);
             StudentImpl student = students.get(memberId);
-            if (student == null) throw new IllegalArgumentException("Unknown student: " + memberId);
-            if (!student.isFree()) throw new IllegalArgumentException("Student already in team: " + memberId);
+            if (student == null) throw rejected("Unknown student: " + memberId);
+            if (!student.isFree()) throw rejected("Student already in team: " + memberId);
             chosen.add(student);
         }
 
@@ -87,6 +98,7 @@ public final class WorkshopSystemImpl implements WorkshopSystem {
         for (Student student : chosen) ((StudentImpl) student).setTeam(team);
         teams.put(nextTeamId, team);
         nextTeamId++;
+        LOG.info("Created team: {}", team.getId());
         return team;
     }
 
@@ -124,5 +136,28 @@ public final class WorkshopSystemImpl implements WorkshopSystem {
             result.addAll(getStudentsOfWorkshop(workshop.getId()));
         }
         return result;
+    }
+
+    private IllegalArgumentException rejected(String message) {
+        LOG.warn("Rejected operation: {}", message);
+        return new IllegalArgumentException(message);
+    }
+
+    @Override public void exportInstructorsDataToJson(File targetFileName) {
+        JsonExporter.instructors(this, targetFileName);
+    }
+    @Override public void exportStudentsDataToJson(File targetFileName) {
+        JsonExporter.students(this, targetFileName);
+    }
+    @Override public void exportTeamsDataToJson(File targetFileName) {
+        JsonExporter.teams(this, targetFileName);
+    }
+    @Override public List<Student> importStudentDataFromFile(File source) {
+        try {
+            return CsvImporter.read(this, source);
+        } catch (IllegalArgumentException e) {
+            LOG.warn("CSV import rejected: {}", e.getMessage());
+            throw e;
+        }
     }
 }
